@@ -91,6 +91,9 @@ jobs:
       env:
         Configuration: ${{ matrix.configuration }}
 
+    - name: Install dependencies
+      run: dotnet restore
+
     # Restore the application to populate the obj folder with RuntimeIdentifiers
     - name: Build the application
       run: msbuild $env:Solution_Name /t:Build /p:Configuration=$env:Configuration
