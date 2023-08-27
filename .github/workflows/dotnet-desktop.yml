@@ -92,7 +92,7 @@ jobs:
         Configuration: ${{ matrix.configuration }}
 
     - name: check build output
-      run: tree /f bin
+      run: tree /f .
 
     # # Decode the base 64 encoded pfx and save the Signing_Certificate
     # - name: Decode the pfx
