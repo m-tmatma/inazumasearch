@@ -115,4 +115,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: binary
-        path: InazumaSearch\bin\${{ env.Configuration }}
+        path: .\InazumaSearch\bin\${{ env.Configuration }}
