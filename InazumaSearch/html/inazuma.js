@@ -5,6 +5,8 @@ var g_lastSelectedFolderLabel = null;
 var g_lastSelectedOrder = null;
 var g_lastSelectedView = null;
 var g_lastSearchOffset = 0;
+
+var g_searched = false;
 var g_searchFinished = false;
 
 // functions
@@ -45,6 +47,8 @@ function executeSearch(
     var $header = $('#SEARCH-RESULT-HEADER');
     var userSetting = JSON.parse(api.getUserSettings());
 
+    var start = performance.now();
+
     // 変数を初期化
     g_lastSearchOffset = 0;
     g_searchFinished = false;
@@ -78,9 +82,6 @@ function executeSearch(
 
         $('#SEARCH-RESULT-MESSAGE').text(data.searchResultMessage);
         $('#SEARCH-RESULT-SUB-MESSAGE').text(data.searchResultSubMessage);
-        if (userSetting.DisplaySearchProcessTime) {
-            $('#SEARCH-PROCESS-TIME').text("(" + data.processTime.toFixed(2) + "秒)");
-        }
 
         // 全結果の表示が完了していれば、完了フラグを立てる
         if (data.nHits === 0 || data.pageSize >= data.nHits){
@@ -155,6 +156,14 @@ function executeSearch(
 
         // 検索結果の各行を表示
         displayResultRows(data, g_lastSelectedView);
+        
+        // 処理時間を表示
+        if (userSetting.DisplaySearchProcessTime) {
+            $('#SEARCH-PROCESS-TIME').text("(検索処理: " + data.processTime.toFixed(2) + "秒, 画面描画: " + ((performance.now() - start) / 1000.0).toFixed(2) + "秒)");
+        }
+
+        // 検索実行済フラグon
+        g_searched = true;
     });
 }
 
@@ -419,7 +428,7 @@ let crawlInterruptingMessageHandler = null;
 function startCrawl(targetFolders = null) {
     // 警告エリアを非表示にする
     $('#MESSAGE-AREA').fadeOut();
-    $('.search-button').removeClass('disabled');
+    $('#SEARCH-BUTTON').removeClass('disabled');
 
     api.crawlStart(JSON.stringify(targetFolders));
 }
@@ -468,6 +477,7 @@ $(async function () {
     //    limit: 20
     //})
 
+    // キーワード欄で文字を入力した
     var backgroundSearchTimeoutHandle = null;
     var keywordOnLastKeydown = '';
     $('#KEYWORD-INPUT').on('keyup', function(e){
@@ -501,6 +511,7 @@ $(async function () {
                         keyword: value
                         , folderPath: ''
                         , fileName: ''
+                        , excludingFileName: ''
                         , body: ''
                         , updated: ''
                     }
@@ -522,11 +533,20 @@ $(async function () {
             // 変更後のテキストの値をセット
             keywordOnLastKeydown = value;
         }
-    })
+    });
+
+    // 検索フォーム内の入力欄でEnterキーを押下
+    $('#SEARCH-FORM input').on('keydown', function(e){
+        if (e.key === 'Enter') {
+            // 検索ボタンクリック扱い
+            $('#SEARCH-BUTTON').click();
+        }
+    });
 
 
     $('#DISPLAY-HIGHLIGHT-MODAL').modal();
     $('#QUERY-GUIDE-MODAL').modal();
+    $('#FILE-NAME-GUIDE-MODAL').modal();
     $('#CRAWL-MODAL').modal({
         onCloseEnd: function () {
             // クロール実行ボタンを押していればクロール処理
@@ -614,6 +634,11 @@ $(async function () {
         return false;
     });
 
+    $('#FILE-NAME-GUIDE-MODAL-TRIGGER').click(function(){
+        $('#FILE-NAME-GUIDE-MODAL').modal('open');
+        return false;
+    });
+
     $('select').formSelect();
     $('.tooltipped').tooltipster();
 
@@ -673,11 +698,12 @@ $(async function () {
 
 
     // 検索ボタンクリック
-    $('.search-button').click(function(){
+    $('#SEARCH-BUTTON').click(function(){
         // 検索条件取得
         var keyword = $('input[name=keyword]').val();
         var folderPath = $('input[name=folder_path]').val();
         var fileName = $('input[name=file_name]').val();
+        var excludingFileName = $('input[name=excluding_file_name]').val();
         var body = $('input[name=body]').val();
         var updated = $('select[name=updated]').val();
 
@@ -685,6 +711,7 @@ $(async function () {
         var detailSearchFlag = $('#DETAIL-SEARCH-SWITCH input:checkbox').is(':checked');
         if(!detailSearchFlag){
             fileName = '';
+            excludingFileName = '';
             folderPath = '';
             body = '';
             updated = '';
@@ -701,6 +728,7 @@ $(async function () {
             keyword: keyword
             , folderPath: folderPath
             , fileName: fileName
+            , excludingFileName: excludingFileName
             , body: body
             , updated: updated
         }
@@ -712,6 +740,20 @@ $(async function () {
 
         return false;
 
+    });
+
+    // 条件クリアリンククリック
+    $('#SEARCH-CONDITION-CLEAR-LINK').click(function(){
+        $('input[name=keyword]').val('').removeClass('valid');
+        $('input[name=folder_path]').val('').removeClass('valid');
+        $('input[name=file_name]').val('').removeClass('valid');
+        $('input[name=excluding_file_name]').val('').removeClass('valid');
+        $('input[name=body]').val('').removeClass('valid');
+        $('select[name=updated]').val('').removeClass('valid');
+        const caption = $('select[name=updated] option:first').text();
+        $('select[name=updated]').siblings().filter('.dropdown-trigger').val(caption);
+        M.updateTextFields();
+        return false;
     });
 
     // 検索対象フォルダ選択
@@ -795,14 +837,14 @@ $(async function () {
         $('#MESSAGE-AREA').show();
         $('#FOLDER-ADD-REQUIRED-MESSAGE').show();
         $('#CRAWL-START').addClass('disabled');
-        $('.search-button').addClass('disabled');
+        $('#SEARCH-BUTTON').addClass('disabled');
     } else {
         // 対象フォルダ登録あり
         if(dbState.documentCount == 0 && !dbState.alwaysCrawlMode){
             // クロール済み文書なし、かつ常駐クロールモードでない
             $('#MESSAGE-AREA').show();
             $('#CRAWL-REQUIRED-MESSAGE').show();
-            $('.search-button').addClass('disabled');
+            $('#SEARCH-BUTTON').addClass('disabled');
         } else {
             // 検索可能
         }
@@ -814,7 +856,7 @@ $(async function () {
     // Each time the user scrolls
     var win = $(window);
     win.scroll(function () {
-        if (location.href.endsWith('index.html')) {
+        if (location.href.endsWith('index.html') && g_searched) {
             // End of the document reached?
             const scrollBottom = win.scrollTop() + win.height();
             if (scrollBottom + 100 >= $(document).height()) {
