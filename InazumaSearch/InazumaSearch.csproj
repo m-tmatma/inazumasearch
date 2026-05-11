@@ -189,7 +189,6 @@
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Management" />
-    <Reference Include="System.Runtime.Remoting" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
     <Reference Include="System.ServiceModel" />
@@ -226,7 +225,6 @@
     <Compile Include="src\Core\Crawl\Work\BackgroundDirectoryCrawl.cs" />
     <Compile Include="src\Core\Crawl\Work\TargetFileCount.cs" />
     <Compile Include="src\Core\Crawl\Work\ManualCrawl.cs" />
-    <Compile Include="src\Core\IPCReceiver.cs" />
     <Compile Include="src\Core\ISAutoUpdater.cs" />
     <Compile Include="src\Core\CommandLineOptions.cs" />
     <Compile Include="src\Core\IconFetcher.cs" />
