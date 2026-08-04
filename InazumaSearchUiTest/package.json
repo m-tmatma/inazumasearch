@@ -1,0 +1,11 @@
+{
+  "name": "inazumasearch-ui-test",
+  "private": true,
+  "scripts": {
+    "pretest": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\build.ps1",
+    "test": "node --test tests/smoke.spec.js"
+  },
+  "devDependencies": {
+    "chrome-remote-interface": "0.34.0"
+  }
+}

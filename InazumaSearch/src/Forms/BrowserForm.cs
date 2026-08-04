@@ -692,6 +692,12 @@ namespace InazumaSearch.Forms
                     Locale = "ja-JP"
                 };
 
+                // 画面自動テストからChromiumへ接続できるようにする
+                if (App.RemoteDebuggingPort > 0)
+                {
+                    settings.RemoteDebuggingPort = App.RemoteDebuggingPort;
+                }
+
                 // レンダリングを最適化
                 // from <https://teratail.com/questions/136022>
                 settings.SetOffScreenRenderingBestPerformanceArgs();
@@ -722,6 +728,7 @@ namespace InazumaSearch.Forms
             AsyncApi.OwnerForm = this;
 
             ChromeBrowser.IsBrowserInitializedChanged += ChromeBrowser_IsBrowserInitializedChanged;
+            ChromeBrowser.FrameLoadStart += ChromeBrowser_FrameLoadStart;
             ChromeBrowser.FrameLoadEnd += ChromeBrowser_FrameLoadEnd;
 
             ChromeBrowser.Load(indexPath);
@@ -737,6 +744,15 @@ namespace InazumaSearch.Forms
             DBState.DocumentCount = selectRes1.SearchResult.NHits;
             DBState.TargetFolderCount = App.UserSettings.TargetFolders.Count;
             DBState.AlwaysCrawlMode = App.UserSettings.AlwaysCrawlMode;
+        }
+
+        private void ChromeBrowser_FrameLoadStart(object sender, FrameLoadStartEventArgs e)
+        {
+            if (e.Frame.IsMain && e.Url.EndsWith("index.html"))
+            {
+                // 設定画面で変更された検索対象フォルダを検索画面へ反映
+                PrepareInitialDBState();
+            }
         }
 
         private void ChromeBrowser_FrameLoadEnd(object sender, FrameLoadEndEventArgs e)
